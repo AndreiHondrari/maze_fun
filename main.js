@@ -34,7 +34,6 @@
     // compute values of interest
     let itemWidth = 100 / mazeWidth;
     let itemHeight = 100 / mazeHeight;
-    let maxBricks = Math.floor( (brickDensity * mazeWidth * mazeHeight) / 100 );
 
     // create maze items
     for (let i = 0; i < mazeHeight; i++) {
@@ -60,17 +59,26 @@
     }
 
     // create bricks
-    let occupiedBricks = {};
-    let brickCount = 0;
-    while (brickCount < maxBricks) {
-      let randomX = Math.floor( Math.random() * mazeWidth);
-      let randomY = Math.floor( Math.random() * mazeWidth);
 
-      if (
-        randomX == mazeStartX && randomY == mazeStartY ||
-        randomX == mazeEndX && randomY == mazeEndY ||
-        randomX in occupiedBricks && occupiedBricks[randomX] == randomY
-      ) continue;
+    let potentialBricks = [];
+
+    for (let x = 0; x < mazeWidth; ++x) {
+      for (let y = 0; y < mazeHeight; ++y) {
+        if (
+          x == mazeStartX && y == mazeStartY ||
+          x == mazeEndX && y == mazeEndY
+        ) continue;
+        potentialBricks.push([x, y]);
+      }
+    }
+
+    let brickCount = 0;
+    let maxBricks = Math.round( (brickDensity * potentialBricks.length) / 100);
+    while (brickCount < maxBricks) {
+      let randomItemIndex = Math.floor(Math.random() * potentialBricks.length);
+      let randomItem = potentialBricks.splice(randomItemIndex, 1)[0];
+      let randomX = randomItem[0];
+      let randomY = randomItem[1];
 
       let newBrick = document.querySelector(`#item-${randomX}-${randomY}`);
       newBrick.classList.add("brick");
