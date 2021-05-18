@@ -39,3 +39,7 @@
 .maze .brick.item::after {
   background-color: orange;
 }
+
+.maze .danger.item::after {
+  background-color: red;
+}

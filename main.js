@@ -1,6 +1,27 @@
 (function(){
   console.log("Hello maze");
 
+  // definitions
+  const CellType = Object.freeze({
+    EMPTY: 0,
+    BRICK: 1,
+    START: 2,
+    END: 3,
+  });
+
+  class MazeStats {
+    constructor(
+      mazeWidth, mazeHeight, mazeStartX, mazeStartY, mazeEndX, mazeEndY
+    ) {
+      this.mazeWidth = mazeWidth,
+      this.mazeHeight = mazeHeight,
+      this.mazeStartX = mazeStartX,
+      this.mazeStartY = mazeStartY,
+      this.mazeEndX = mazeEndX,
+      this.mazeEndY = mazeEndY
+    }
+  }
+
   // declarations
   let buttonCreateMaze = document.querySelector("#createMaze");
 
@@ -14,7 +35,69 @@
 
   let maze = document.querySelector("#maze");
 
+  let mazeCells = {};
+
   // functions
+  function findSolutions(currentCell, mazeStats, mazeCells, visited, currentPath) {
+
+    if (
+      currentCell[0] != mazeStats.mazeStartX &&
+      currentCell[1] != mazeStats.mazeStartY
+    )
+      currentPath = [...currentPath, currentCell];
+
+    // initialize visit matrix
+    if (visited == null) {
+      visited = {};
+
+      for (let i = 0; i < mazeStats.mazeWidth; ++i) {
+        visited[i] = Array.from({length: mazeStats.mazeHeight}, () => 0);
+      }
+    } else {
+      // or just copy
+      visited = _.cloneDeep(visited);
+    }
+
+    // mark as visited
+    visited[currentCell[0]][currentCell[1]] = 1;
+
+    // console.log(visited);
+
+    adjacentCells = [
+      [currentCell[0], currentCell[1] - 1], // top
+      [currentCell[0] + 1, currentCell[1]], // right
+      [currentCell[0], currentCell[1] + 1], // bottom
+      [currentCell[0] - 1, currentCell[1]], // left
+    ];
+
+    let solutions = [];
+    let solutionsFromCell = null;
+
+    for (let nextCell of adjacentCells) {
+
+      if (
+        nextCell[0] < 0 || nextCell[0] >= mazeStats.mazeWidth ||
+        nextCell[1] < 0 || nextCell[1] >= mazeStats.mazeHeight ||
+        mazeCells[nextCell[0]][nextCell[1]] == CellType.BRICK ||
+        mazeCells[nextCell[0]][nextCell[1]] == CellType.START ||
+        visited[nextCell[0]][nextCell[1]] == 1
+      ) continue;
+
+      if (mazeCells[nextCell[0]][nextCell[1]] == CellType.END)
+        solutions = [...solutions, currentPath];
+
+      solutionsFromCell = findSolutions(
+        nextCell, mazeStats, mazeCells, visited, currentPath
+      );
+
+      if (solutionsFromCell != null) {
+        solutions = [...solutions, ...solutionsFromCell];
+      }
+    }
+
+    return solutions;
+  }
+
   function onCreateMaze() {
     // clear current items
     let items = document.querySelectorAll(".item");
@@ -31,9 +114,23 @@
     let mazeEndY = Number(mazeEndYInput.value) - 1;
     let brickDensity = Number(brickDensityInput.value);
 
+    const mazeStats = new MazeStats(
+      mazeWidth, mazeHeight, mazeStartX, mazeStartY, mazeEndX, mazeEndY
+    );
+
     // compute values of interest
     let itemWidth = 100 / mazeWidth;
     let itemHeight = 100 / mazeHeight;
+
+    // define maze cells matrix
+    for (let i = 0; i < mazeStats.mazeWidth; ++i) {
+      mazeCells[i] = Array.from(
+        {length: mazeStats.mazeHeight},
+        () => CellType.EMPTY
+      );
+    }
+    mazeCells[mazeStats.mazeStartX][mazeStats.mazeStartY] = CellType.START;
+    mazeCells[mazeStats.mazeEndX][mazeStats.mazeEndY] = CellType.END;
 
     // create maze items
     for (let i = 0; i < mazeHeight; i++) {
@@ -43,15 +140,18 @@
         newItem.style.width = itemWidth + "%";
         newItem.style.height = itemHeight + "%";
         newItem.id = `item-${j}-${i}`;
+        newItem.dataset.cellType = CellType.EMPTY;
 
         // mark start
         if (j == mazeStartX && i == mazeStartY) {
           newItem.classList.add("start");
+          newItem.dataset.cellType = CellType.START;
         }
 
         // mark end
         if (j == mazeEndX && i == mazeEndY) {
           newItem.classList.add("end");
+          newItem.dataset.cellType = CellType.END;
         }
 
         maze.appendChild(newItem);
@@ -59,7 +159,6 @@
     }
 
     // create bricks
-
     let potentialBricks = [];
 
     for (let x = 0; x < mazeWidth; ++x) {
@@ -82,8 +181,30 @@
 
       let newBrick = document.querySelector(`#item-${randomX}-${randomY}`);
       newBrick.classList.add("brick");
+      newBrick.dataset.cellType = CellType.BRICK;
+
+      mazeCells[randomX][randomY] = CellType.BRICK;
 
       ++brickCount;
+    }
+
+    // find solution
+    let solutions = findSolutions(
+      [mazeStats.mazeStartX, mazeStats.mazeStartY],
+      mazeStats,
+      mazeCells,
+      null,
+      [], // current path
+    );
+
+    if (solutions.length) {
+      solutions = _.sortBy(solutions, (s) => s.length);
+    } else {
+      let emptyItems = document.querySelectorAll(`.item[data-cell-type="${CellType.EMPTY}"]`);
+
+      for (let item of emptyItems) {
+        item.classList.add("danger");
+      }
     }
   }
 
