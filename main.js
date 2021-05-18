@@ -41,8 +41,10 @@
   function findSolutions(currentCell, mazeStats, mazeCells, visited, currentPath) {
 
     if (
-      currentCell[0] != mazeStats.mazeStartX &&
-      currentCell[1] != mazeStats.mazeStartY
+      !(
+        currentCell[0] == mazeStats.mazeStartX &&
+        currentCell[1] == mazeStats.mazeStartY
+      )
     )
       currentPath = [...currentPath, currentCell];
 
@@ -60,8 +62,6 @@
 
     // mark as visited
     visited[currentCell[0]][currentCell[1]] = 1;
-
-    // console.log(visited);
 
     adjacentCells = [
       [currentCell[0], currentCell[1] - 1], // top
@@ -199,6 +199,13 @@
 
     if (solutions.length) {
       solutions = _.sortBy(solutions, (s) => s.length);
+      let ultimateSolution = solutions.slice(0, 1)[0];
+
+      for (let pathCell of ultimateSolution) {
+        let pathNode = document.querySelector(`#item-${pathCell[0]}-${pathCell[1]}`);
+        pathNode.classList.add("path-node");
+      }
+
     } else {
       let emptyItems = document.querySelectorAll(`.item[data-cell-type="${CellType.EMPTY}"]`);
 

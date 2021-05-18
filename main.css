@@ -43,3 +43,7 @@
 .maze .danger.item::after {
   background-color: red;
 }
+
+.maze .path-node.item::after {
+  background-color: cyan;
+}
