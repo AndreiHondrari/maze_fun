@@ -38,7 +38,13 @@
   let mazeCells = {};
 
   // functions
-  function findSolutions(currentCell, mazeStats, mazeCells, visited, currentPath) {
+  function sleep(ms) {
+    return new Promise(resolve => setTimeout(resolve, ms));
+  }
+
+  async function findSolutions(
+    currentCell, mazeStats, mazeCells, visited, currentPath, nonsolutionVisited
+  ) {
 
     if (
       !(
@@ -60,6 +66,14 @@
       visited = _.cloneDeep(visited);
     }
 
+    if (nonsolutionVisited == null) {
+      nonsolutionVisited = {};
+
+      for (let i = 0; i < mazeStats.mazeWidth; ++i) {
+        nonsolutionVisited[i] = Array.from({length: mazeStats.mazeHeight}, () => 0);
+      }
+    }
+
     // mark as visited
     visited[currentCell[0]][currentCell[1]] = 1;
 
@@ -73,6 +87,14 @@
     let solutions = [];
     let solutionsFromCell = null;
 
+    const currentNode = document.querySelector(
+      `#item-${currentCell[0]}-${currentCell[1]}`
+    );
+
+    currentNode.classList.add("seek");
+
+    let currentCellSolutions = [];
+
     for (let nextCell of adjacentCells) {
 
       if (
@@ -81,24 +103,36 @@
         mazeCells[nextCell[0]][nextCell[1]] == CellType.BRICK ||
         mazeCells[nextCell[0]][nextCell[1]] == CellType.START ||
         visited[nextCell[0]][nextCell[1]] == 1
+        // nonsolutionVisited[nextCell[0]][nextCell[1]] == 1
       ) continue;
 
       if (mazeCells[nextCell[0]][nextCell[1]] == CellType.END)
         solutions = [...solutions, currentPath];
 
-      solutionsFromCell = findSolutions(
-        nextCell, mazeStats, mazeCells, visited, currentPath
+      solutionsFromCell = await findSolutions(
+        nextCell, mazeStats, mazeCells, visited, currentPath, nonsolutionVisited
       );
 
       if (solutionsFromCell != null) {
-        solutions = [...solutions, ...solutionsFromCell];
+        currentCellSolutions = [...currentCellSolutions, ...solutionsFromCell];
       }
     }
+
+    if (currentCellSolutions.length > 0) {
+      solutions = [...solutions, ...currentCellSolutions];
+    } else {
+      nonsolutionVisited[currentCell[0]][currentCell[1]] = 1;
+    }
+
+
+    await sleep(10);
+
+    currentNode.classList.remove("seek");
 
     return solutions;
   }
 
-  function onCreateMaze() {
+  async function onCreateMaze() {
     // clear current items
     let items = document.querySelectorAll(".item");
     items.forEach(function(elem) {
@@ -189,15 +223,17 @@
     }
 
     // find solution
-    let solutions = findSolutions(
+    let solutions = await findSolutions(
       [mazeStats.mazeStartX, mazeStats.mazeStartY],
       mazeStats,
       mazeCells,
       null,
-      [], // current path
+      [], // current path,
+      null
     );
 
     if (solutions.length) {
+      console.log("Solutions found");
       solutions = _.sortBy(solutions, (s) => s.length);
       let ultimateSolution = solutions.slice(0, 1)[0];
 
@@ -207,6 +243,7 @@
       }
 
     } else {
+      console.log("No solutions");
       let emptyItems = document.querySelectorAll(`.item[data-cell-type="${CellType.EMPTY}"]`);
 
       for (let item of emptyItems) {

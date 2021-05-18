@@ -28,6 +28,14 @@
   background-color: white;
 }
 
+.maze .danger.item::after {
+  background-color: red;
+}
+
+.maze .seek.item::after {
+  background-color: #0f0;
+}
+
 .maze .start.item::after {
   background-color: blue;
 }
@@ -38,10 +46,6 @@
 
 .maze .brick.item::after {
   background-color: orange;
-}
-
-.maze .danger.item::after {
-  background-color: red;
 }
 
 .maze .path-node.item::after {
